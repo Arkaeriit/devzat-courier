@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	api "github.com/quackduck/devzat/devzatapi"
+	"sync"
 )
 
 type Instance struct {
@@ -22,19 +23,22 @@ var Instances = [2]Instance{
 	Instance{Host: "localhost:5558", Token: "dvz@fX+Rx4eNVuTzfxwKPaQjBZoUksrlDNwMFvQY8A5NhXM=", Prefix: "2"},
 }
 
-var InstancesSessions []InstanceSession
+var sessionsLock sync.Mutex
+var instancesSessions []InstanceSession
 
 func makeSessionInstances(insts [2]Instance) {
-	InstancesSessions = make([]InstanceSession, len(insts))
+	sessionsLock.Lock()
+	defer sessionsLock.Unlock()
+	instancesSessions = make([]InstanceSession, len(insts))
 	for i := range insts {
-		InstancesSessions[i].instance = insts[i]
+		instancesSessions[i].instance = insts[i]
 		session, err := api.NewSession(insts[i].Host, insts[i].Token)
 		if err != nil {
 			fmt.Println(err)
-			InstancesSessions[i].connected = false
+			instancesSessions[i].connected = false
 		} else {
-			InstancesSessions[i].connected = true
-			InstancesSessions[i].session = session
+			instancesSessions[i].connected = true
+			instancesSessions[i].session = session
 		}
 	}
 }
@@ -47,8 +51,8 @@ func errPanic(err error) {
 
 func main() {
 	makeSessionInstances(Instances)
-	for i := range InstancesSessions {
-		err := InstancesSessions[i].session.SendMessage(api.Message{Room: "#main", From: InstancesSessions[i].instance.Prefix, Data: "Coucou"})
+	for i := range instancesSessions {
+		err := instancesSessions[i].session.SendMessage(api.Message{Room: "#main", From: instancesSessions[i].instance.Prefix, Data: "Coucou"})
 		errPanic(err)
 	}
 }
