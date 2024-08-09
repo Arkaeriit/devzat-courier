@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	api "github.com/quackduck/devzat/devzatapi"
+	"os"
 	"sync"
 	"time"
+
+	api "github.com/quackduck/devzat/devzatapi"
 )
 
 type Instance struct {
@@ -25,16 +28,11 @@ type MessageFrom struct {
 	fromInstance int
 }
 
-var Instances = [2]Instance{
-	Instance{Host: "localhost:5557", Token: "dvz@OB8RwxxDaJzJg2hZclgWuEQD2XkqW1L5zFMpUw7k2gs=", Prefix: "1"},
-	Instance{Host: "localhost:5558", Token: "dvz@fX+Rx4eNVuTzfxwKPaQjBZoUksrlDNwMFvQY8A5NhXM=", Prefix: "2"},
-}
-
 var sessionsLock sync.Mutex
 var instancesSessions []InstanceSession
 var messagesChan chan MessageFrom
 
-func makeSessionInstances(insts [2]Instance) {
+func makeSessionInstances(insts []Instance) {
 	sessionsLock.Lock()
 	defer sessionsLock.Unlock()
 	instancesSessions = make([]InstanceSession, len(insts))
@@ -78,6 +76,9 @@ func readMsgChans() {
 	sessionsLock.Lock()
 	defer sessionsLock.Unlock()
 	for i := range instancesSessions {
+		if !instancesSessions[i].connected {
+			continue
+		}
 		select {
 		case err := <-instancesSessions[i].session.ErrorChan:
 			fmt.Println(err)
@@ -117,6 +118,12 @@ func errPanic(err error) {
 }
 
 func main() {
-	makeSessionInstances(Instances)
+	f, err := os.Open("instances.json")
+	errPanic(err)
+	var instances []Instance
+	err = json.NewDecoder(f).Decode(&instances)
+	errPanic(err)
+	makeSessionInstances(instances)
+	fmt.Println("Starting loop")
 	courierLoop()
 }
