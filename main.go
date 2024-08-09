@@ -16,7 +16,13 @@ type Instance struct {
 type InstanceSession struct {
 	instance  Instance
 	session   *api.Session
+	msgChan   chan api.Message
 	connected bool
+}
+
+type MessageFrom struct {
+	msg          api.Message
+	fromInstance int
 }
 
 var Instances = [2]Instance{
@@ -26,11 +32,13 @@ var Instances = [2]Instance{
 
 var sessionsLock sync.Mutex
 var instancesSessions []InstanceSession
+var messagesChan chan MessageFrom
 
 func makeSessionInstances(insts [2]Instance) {
 	sessionsLock.Lock()
 	defer sessionsLock.Unlock()
 	instancesSessions = make([]InstanceSession, len(insts))
+	messagesChan = make(chan MessageFrom, len(insts)*2)
 	for i := range insts {
 		instancesSessions[i].instance = insts[i]
 		session, err := api.NewSession(insts[i].Host, insts[i].Token)
@@ -41,22 +49,64 @@ func makeSessionInstances(insts [2]Instance) {
 			instancesSessions[i].connected = true
 			instancesSessions[i].session = session
 		}
-	}
-}
-
-func courier(msg api.Message, fromInstance int) {
-	sessionsLock.Lock()
-	defer sessionsLock.Unlock()
-	from := instancesSessions[fromInstance].instance.Prefix + " " + msg.From
-	for i := range instancesSessions {
-		if i == fromInstance || !instancesSessions[i].connected {
-			continue
-		}
-		err := instancesSessions[i].session.SendMessage(api.Message{Room: msg.Room, From: from, Data: msg.Data})
+		msgChan, _, err := session.RegisterListener(false, false, "")
+		instancesSessions[i].msgChan = msgChan
 		if err != nil { // TODO: refacto that
 			fmt.Println(err)
 			instancesSessions[i].connected = false
 		}
+	}
+}
+
+func courier(msg MessageFrom) {
+	sessionsLock.Lock()
+	defer sessionsLock.Unlock()
+	from := instancesSessions[msg.fromInstance].instance.Prefix + " " + msg.msg.From
+	for i := range instancesSessions {
+		if i == msg.fromInstance || !instancesSessions[i].connected {
+			continue
+		}
+		err := instancesSessions[i].session.SendMessage(api.Message{Room: msg.msg.Room, From: from, Data: msg.msg.Data})
+		if err != nil { // TODO: refacto that
+			fmt.Println(err)
+			instancesSessions[i].connected = false
+		}
+	}
+}
+
+func readMsgChans() {
+	sessionsLock.Lock()
+	defer sessionsLock.Unlock()
+	for i := range instancesSessions {
+		select {
+		case err := <-instancesSessions[i].session.ErrorChan:
+			fmt.Println(err)
+			instancesSessions[i].connected = false
+		case msg := <-instancesSessions[i].msgChan:
+			msgFrom := MessageFrom{msg: msg, fromInstance: i}
+			messagesChan <- msgFrom
+		default:
+			continue
+		}
+	}
+}
+
+func dispatchMessages() {
+	for {
+		select {
+		case msg := <-messagesChan:
+			courier(msg)
+		default:
+			return
+		}
+	}
+}
+
+func courierLoop() {
+	for {
+		readMsgChans()
+		dispatchMessages()
+		time.Sleep(time.Millisecond * 250)
 	}
 }
 
@@ -68,8 +118,5 @@ func errPanic(err error) {
 
 func main() {
 	makeSessionInstances(Instances)
-	msg := api.Message{Room: "#main", From: "courier", Data: "Coucou"}
-	courier(msg, 1)
-	time.Sleep(20 * time.Second)
-	courier(msg, 0)
+	courierLoop()
 }
