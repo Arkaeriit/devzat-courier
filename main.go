@@ -4,6 +4,7 @@ import (
 	"fmt"
 	api "github.com/quackduck/devzat/devzatapi"
 	"sync"
+	"time"
 )
 
 type Instance struct {
@@ -43,6 +44,22 @@ func makeSessionInstances(insts [2]Instance) {
 	}
 }
 
+func courier(msg api.Message, fromInstance int) {
+	sessionsLock.Lock()
+	defer sessionsLock.Unlock()
+	from := instancesSessions[fromInstance].instance.Prefix + " " + msg.From
+	for i := range instancesSessions {
+		if i == fromInstance || !instancesSessions[i].connected {
+			continue
+		}
+		err := instancesSessions[i].session.SendMessage(api.Message{Room: msg.Room, From: from, Data: msg.Data})
+		if err != nil { // TODO: refacto that
+			fmt.Println(err)
+			instancesSessions[i].connected = false
+		}
+	}
+}
+
 func errPanic(err error) {
 	if err != nil {
 		panic(err)
@@ -51,8 +68,8 @@ func errPanic(err error) {
 
 func main() {
 	makeSessionInstances(Instances)
-	for i := range instancesSessions {
-		err := instancesSessions[i].session.SendMessage(api.Message{Room: "#main", From: instancesSessions[i].instance.Prefix, Data: "Coucou"})
-		errPanic(err)
-	}
+	msg := api.Message{Room: "#main", From: "courier", Data: "Coucou"}
+	courier(msg, 1)
+	time.Sleep(20 * time.Second)
+	courier(msg, 0)
 }
