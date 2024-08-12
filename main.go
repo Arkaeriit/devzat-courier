@@ -122,7 +122,12 @@ func errPanic(err error) {
 }
 
 func main() {
-	f, err := os.Open("instances.json")
+	if len(os.Args) != 2 {
+		fmt.Printf("Usage: %s <config file>\n", os.Args[0])
+		os.Exit(1)
+	}
+	configFile := os.Args[1]
+	f, err := os.Open(configFile)
 	errPanic(err)
 	var instances []Instance
 	err = json.NewDecoder(f).Decode(&instances)
