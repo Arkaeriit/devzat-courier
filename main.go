@@ -11,9 +11,11 @@ import (
 )
 
 type Instance struct {
-	Host   string
-	Token  string
-	Prefix string
+	Host        string
+	Token       string
+	Prefix      string
+	NameColor   string
+	PrefixColor string
 }
 
 type InstanceSession struct {
@@ -59,7 +61,9 @@ func makeSessionInstances(insts []Instance) {
 func courier(msg MessageFrom) {
 	sessionsLock.Lock()
 	defer sessionsLock.Unlock()
-	from := instancesSessions[msg.fromInstance].instance.Prefix + " " + msg.msg.From
+	prefix := colorString(instancesSessions[msg.fromInstance].instance.Prefix, instancesSessions[msg.fromInstance].instance.PrefixColor)
+	user := colorString(msg.msg.From, instancesSessions[msg.fromInstance].instance.NameColor)
+	from := prefix + " " + user
 	for i := range instancesSessions {
 		if i == msg.fromInstance || !instancesSessions[i].connected {
 			continue
