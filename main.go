@@ -86,7 +86,7 @@ func (instance *InstanceSession) registerListener() {
 
 // Register the courier command to every session.
 func (instance *InstanceSession) registerCmd() {
-	err := instance.session.RegisterCmd("courier", "", "",
+	err := instance.session.RegisterCmd("courier", "command", "Run 'courier help' for more information.",
 		func(cmdCall api.CmdCall, err error) {
 			sessionsLock.Lock()
 			defer sessionsLock.Unlock()
