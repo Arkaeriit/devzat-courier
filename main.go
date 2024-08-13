@@ -85,6 +85,11 @@ func manageInstanceError(instance *InstanceSession, err error) {
 	if err == nil {
 		return
 	}
+	if err.Error() == "rpc error: code = InvalidArgument desc = Room does not exist" {
+		// This is what happen if you talk in a room which doesn't exists in
+		// other instances, totally normal.
+		return
+	}
 	fmt.Println(err.Error())
 	fmt.Println(err)
 	instance.connected = false
