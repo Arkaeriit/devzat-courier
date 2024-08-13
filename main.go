@@ -42,29 +42,19 @@ func makeSessionInstances(insts []Instance) {
 	for i := range insts {
 		instancesSessions[i].instance = insts[i]
 		session, err := api.NewSession(insts[i].Host, insts[i].Token)
-		if err != nil {
-			fmt.Println(err)
-			instancesSessions[i].connected = false
-		} else {
-			instancesSessions[i].connected = true
-			instancesSessions[i].session = session
-		}
+		instancesSessions[i].connected = true
+		instancesSessions[i].session = session
+		manageInstanceError(&instancesSessions[i], err)
 		msgChan, _, err := session.RegisterListener(false, false, "")
 		instancesSessions[i].msgChan = msgChan
-		if err != nil { // TODO: refacto that
-			fmt.Println(err)
-			instancesSessions[i].connected = false
-		}
+		manageInstanceError(&instancesSessions[i], err)
 		err = session.RegisterCmd("courier", "", "",
 			func(cmdCall api.CmdCall, err error) {
 				sessionsLock.Lock()
 				defer sessionsLock.Unlock()
 				courierCmd(session, cmdCall, instancesSessions)
 			})
-		if err != nil { // TODO: refacto that
-			fmt.Println(err)
-			instancesSessions[i].connected = false
-		}
+		manageInstanceError(&instancesSessions[i], err)
 	}
 }
 
@@ -87,11 +77,17 @@ func courier(msg MessageFrom) {
 			continue
 		}
 		err := instancesSessions[i].session.SendMessage(api.Message{Room: msg.msg.Room, From: from, Data: msg.msg.Data})
-		if err != nil { // TODO: refacto that
-			fmt.Println(err)
-			instancesSessions[i].connected = false
-		}
+		manageInstanceError(&instancesSessions[i], err)
 	}
+}
+
+func manageInstanceError(instance *InstanceSession, err error) {
+	if err == nil {
+		return
+	}
+	fmt.Println(err.Error())
+	fmt.Println(err)
+	instance.connected = false
 }
 
 func readMsgChans() {
