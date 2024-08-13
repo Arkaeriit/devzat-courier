@@ -55,14 +55,32 @@ func makeSessionInstances(insts []Instance) {
 			fmt.Println(err)
 			instancesSessions[i].connected = false
 		}
+		err = session.RegisterCmd("courier", "", "",
+			func(cmdCall api.CmdCall, err error) {
+				sessionsLock.Lock()
+				defer sessionsLock.Unlock()
+				courierCmd(session, cmdCall, instancesSessions)
+			})
+		if err != nil { // TODO: refacto that
+			fmt.Println(err)
+			instancesSessions[i].connected = false
+		}
 	}
+}
+
+func colorPrefix(i Instance) string {
+	return colorString(i.Prefix, i.PrefixColor)
+}
+
+func colorName(i Instance, name string) string {
+	return colorString(name, i.NameColor)
 }
 
 func courier(msg MessageFrom) {
 	sessionsLock.Lock()
 	defer sessionsLock.Unlock()
-	prefix := colorString(instancesSessions[msg.fromInstance].instance.Prefix, instancesSessions[msg.fromInstance].instance.PrefixColor)
-	user := colorString(msg.msg.From, instancesSessions[msg.fromInstance].instance.NameColor)
+	prefix := colorPrefix(instancesSessions[msg.fromInstance].instance)
+	user := colorName(instancesSessions[msg.fromInstance].instance, msg.msg.From)
 	from := prefix + " " + user
 	for i := range instancesSessions {
 		if i == msg.fromInstance || !instancesSessions[i].connected {
