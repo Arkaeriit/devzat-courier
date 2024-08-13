@@ -79,6 +79,9 @@ func (instance *InstanceSession) openSession(template Instance) {
 
 // Register a wildcard listener for every session.
 func (instance *InstanceSession) registerListener() {
+	if !instance.connected {
+		return
+	}
 	msgChan, _, err := instance.session.RegisterListener(false, false, "")
 	instance.msgChan = msgChan
 	manageInstanceError(instance, err)
@@ -86,6 +89,9 @@ func (instance *InstanceSession) registerListener() {
 
 // Register the courier command to every session.
 func (instance *InstanceSession) registerCmd() {
+	if !instance.connected {
+		return
+	}
 	err := instance.session.RegisterCmd("courier", "command", "Run 'courier help' for more information.",
 		func(cmdCall api.CmdCall, err error) {
 			sessionsLock.Lock()
