@@ -33,6 +33,7 @@ Source code available on [GitHub](https://github.com/Arkaeriit/devzat-courier)
 
 /* --------------------------------- Status --------------------------------- */
 
+// Return the host without the port of an instance.
 func getHost(i Instance) string {
 	r, _ := regexp.Compile(":[0-9]+$")
 	ret := r.ReplaceAllString(i.Host, "")
@@ -61,6 +62,8 @@ func longuestPrefix(instances []InstanceSession) int {
 	return ret
 }
 
+// Makes a status line from an instance session, with pretty host and prefix and
+// connected state.
 func formatInstanceStatus(i InstanceSession, prefixLen, hostLen int) string {
 	prefix := colorPrefix(i.instance)
 	host := colorName(i.instance, i.instance.Host)
@@ -71,6 +74,7 @@ func formatInstanceStatus(i InstanceSession, prefixLen, hostLen int) string {
 	return fmt.Sprintf("%- *s %- *s %s\n", prefixLen, prefix, hostLen, host, status)
 }
 
+// Makes a status line for every instances.
 func formatStatus(instances []InstanceSession) string {
 	ret := ""
 	prefixLen := longuestPrefix(instances)

@@ -15,6 +15,8 @@ var colors = map[string]string{
 
 const nc = "\033[m"
 
+// Try to color `in` in the given color. If the color is invalid, return it
+// unchanged.
 func colorString(in string, color string) string {
 	color, ok := colors[color]
 	if !ok {
