@@ -7,6 +7,32 @@ import (
 	api "github.com/quackduck/devzat/devzatapi"
 )
 
+/* ---------------------------------- Main ---------------------------------- */
+
+func courierCmd(session *api.Session, cmdCall api.CmdCall, instances []InstanceSession) {
+	var msg string
+	if cmdCall.Args == "help" {
+		msg = help
+	} else if cmdCall.Args == "status" {
+		msg = formatStatus(instances)
+	} else {
+		return
+	}
+	session.SendMessage(api.Message{Room: cmdCall.Room, From: "", DMTo: "", Data: msg})
+}
+
+/* ---------------------------------- Help ---------------------------------- */
+
+const help = `Devzat Courier, a plugin to let multiple Devzat instance communicate.
+
+Each message will be sent to every connected instances with an identifying prefix.
+
+Source code available on [GitHub](https://github.com/Arkaeriit/devzat-courier)
+` +
+	"\nTo list the connected instances and their state, do `courier status`.\n"
+
+/* --------------------------------- Status --------------------------------- */
+
 func getHost(i Instance) string {
 	r, _ := regexp.Compile(":[0-9]+$")
 	ret := r.ReplaceAllString(i.Host, "")
@@ -53,8 +79,4 @@ func formatStatus(instances []InstanceSession) string {
 		ret += formatInstanceStatus(i, prefixLen, hostLen)
 	}
 	return ret
-}
-
-func courierCmd(session *api.Session, cmdCall api.CmdCall, instances []InstanceSession) {
-	session.SendMessage(api.Message{Room: cmdCall.Room, From: "", DMTo: "", Data: formatStatus(instances)})
 }
