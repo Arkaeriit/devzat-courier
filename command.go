@@ -44,7 +44,7 @@ func getHost(i Instance) string {
 func longuestHostName(instances []InstanceSession) int {
 	ret := 0
 	for _, i := range instances {
-		hostLen := len(getHost(i.instance))
+		hostLen := len(colorName(i.instance, getHost(i.instance)))
 		if hostLen > ret {
 			ret = hostLen
 		}
@@ -54,7 +54,7 @@ func longuestHostName(instances []InstanceSession) int {
 func longuestPrefix(instances []InstanceSession) int {
 	ret := 0
 	for _, i := range instances {
-		prefixLen := len(i.instance.Prefix)
+		prefixLen := len(colorPrefix(i.instance))
 		if prefixLen > ret {
 			ret = prefixLen
 		}
@@ -66,7 +66,7 @@ func longuestPrefix(instances []InstanceSession) int {
 // connected state.
 func formatInstanceStatus(i InstanceSession, prefixLen, hostLen int) string {
 	prefix := colorPrefix(i.instance)
-	host := colorName(i.instance, i.instance.Host)
+	host := colorName(i.instance, getHost(i.instance))
 	status := colorString("online", "green")
 	if !i.connected {
 		status = colorString("offline", "red")
