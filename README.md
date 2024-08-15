@@ -52,3 +52,14 @@ Invalid or missing colors will default to uncolored text.
 
 Compile the code in this repository with `go build` and run the resulting executable with the configuration file as argument.
 
+## Future improvement
+
+Possible now:
+* Monitor active users in each instance.
+* Add 8 bits colors.
+* Try to read command outputs.
+
+Depending on future Devzat improvements:
+* If we get admin info from the instance: admins can block specific instances.
+* If we get user's color: try to use them.
+
